@@ -17,11 +17,11 @@ type CashEntry = {
   productService: string;
   movement: MovementOption;
   type: ActivityOption;
-  paymentMethod: string;
   amount: number;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+  paymentMethod: PaymentOption;
 };
 
 type LivroCaixaPanelProps = {
@@ -47,6 +47,14 @@ type EntryFormState = {
 
 type MovementOption = "RECEITA" | "COMPRA" | "DESPESA" | "RETIRADA";
 type ActivityOption = "COMERCIO" | "INDUSTRIA" | "SERVICO" | "TRANSPORTE";
+type PaymentOption =
+  | "PIX"
+  | "DINHEIRO"
+  | "BOLETO"
+  | "CARTAO_CREDITO"
+  | "CARTAO_DEBITO"
+  | "CHEQUE"
+  | "OUTROS";
 
 const MOVEMENT_OPTIONS: { value: MovementOption; label: string }[] = [
   { value: "RECEITA", label: "Receita" },
@@ -60,6 +68,16 @@ const ACTIVITY_OPTIONS: { value: ActivityOption; label: string }[] = [
   { value: "INDUSTRIA", label: "Indústria" },
   { value: "SERVICO", label: "Serviço" },
   { value: "TRANSPORTE", label: "Transporte" },
+];
+
+const PAYMENT_OPTIONS: { value: PaymentOption; label: string }[] = [
+  { value: "PIX", label: "PIX" },
+  { value: "DINHEIRO", label: "Dinheiro" },
+  { value: "BOLETO", label: "Boleto" },
+  { value: "CARTAO_CREDITO", label: "Cartão de crédito" },
+  { value: "CARTAO_DEBITO", label: "Cartão de débito" },
+  { value: "CHEQUE", label: "Cheque" },
+  { value: "OUTROS", label: "Outros" },
 ];
 
 const initialClientForm: ClientFormState = {
@@ -114,7 +132,7 @@ function createInitialEntryForm(): EntryFormState {
     counterpart: "",
     productService: "",
     type: "COMERCIO",
-    paymentMethod: "",
+  paymentMethod: "",
     amount: "",
     notes: "",
   };
@@ -145,6 +163,10 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
   const [entryForm, setEntryForm] = useState<EntryFormState>(() => createInitialEntryForm());
   const [entryFormError, setEntryFormError] = useState<string | null>(null);
   const [isCreatingEntry, startCreateEntryTransition] = useTransition();
+  const [editingEntry, setEditingEntry] = useState<CashEntry | null>(null);
+  const [isEditing, startEditTransition] = useTransition();
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
   useEffect(() => {
     if (typeof selectedClientId !== "number") {
@@ -287,10 +309,23 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
     }));
   }
 
+  function applyCurrencyMask(rawValue: string) {
+    const digits = rawValue.replace(/\D/g, "");
+    const number = Number(digits) / 100;
+    return currencyFormatter
+      .format(number)
+      .replace(/\s/g, "")
+      .replace("R$", "")
+      .trim();
+  }
+
   function handleEntryFormChange<K extends keyof EntryFormState>(field: K, value: string) {
     setEntryForm((prev) => ({
       ...prev,
-      [field]: field === "amount" ? normalizeAmountInput(value) : value,
+      [field]:
+        field === "amount"
+          ? applyCurrencyMask(normalizeAmountInput(value))
+          : value,
     }));
   }
 
@@ -344,7 +379,8 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
 
     const payload = {
       ...entryForm,
-      amount: entryForm.amount.replace(/\./g, "").replace(",", "."),
+      amount: entryForm.amount,
+      paymentMethod: entryForm.paymentMethod,
       notes: entryForm.notes.trim(),
     };
 
@@ -380,6 +416,104 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
       } catch (error) {
         console.error("Erro ao criar lançamento", error);
         setEntryFormError("Não foi possível salvar o lançamento. Tente novamente.");
+      }
+    });
+  }
+
+  function handleEditEntry(entry: CashEntry) {
+    setEditingEntry(entry);
+    setEditError(null);
+  }
+
+  function handleCloseEditModal() {
+    setEditingEntry(null);
+    setEditError(null);
+  }
+
+  function handleUpdateEntry(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingEntry) {
+      return;
+    }
+
+    const payload = {
+      id: editingEntry.id,
+      companyId: editingEntry.companyId,
+      date: editingEntry.date.slice(0, 10),
+      movement: editingEntry.movement,
+      counterpart: editingEntry.counterpart,
+      productService: editingEntry.productService,
+      type: editingEntry.type,
+      paymentMethod: editingEntry.paymentMethod,
+      amount: currencyFormatter
+        .format(editingEntry.amount)
+        .replace(/\s/g, "")
+        .replace("R$", "")
+        .trim(),
+      notes: editingEntry.notes ?? "",
+    };
+
+    const payloadBody = {
+      ...payload,
+      amount: payload.amount,
+    };
+
+    startEditTransition(async () => {
+      try {
+        const response = await fetch(
+          `/api/clients/${editingEntry.companyId}/cash-entries/${editingEntry.id}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadBody),
+          },
+        );
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({ error: "Erro inesperado ao atualizar." }));
+          setEditError(body.error ?? "Não foi possível atualizar o lançamento.");
+          return;
+        }
+
+        const updated = (await response.json()) as CashEntry;
+        setEntries((prev) => prev.map((entry) => (entry.id === updated.id ? updated : entry)));
+        handleCloseEditModal();
+      } catch (error) {
+        console.error("Erro ao atualizar lançamento", error);
+        setEditError("Não foi possível atualizar o lançamento. Tente novamente.");
+      }
+    });
+  }
+
+  function handleDeleteEntry(entry: CashEntry) {
+    if (!window.confirm("Tem certeza que deseja excluir este lançamento?")) {
+      return;
+    }
+
+    startDeleteTransition(async () => {
+      try {
+        const response = await fetch(
+          `/api/clients/${entry.companyId}/cash-entries/${entry.id}`,
+          {
+            method: "DELETE",
+          },
+        );
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({ error: "Erro inesperado ao excluir." }));
+          alert(body.error ?? "Não foi possível excluir o lançamento.");
+          return;
+        }
+
+        setEntries((prev) => prev.filter((existing) => existing.id !== entry.id));
+        if (editingEntry?.id === entry.id) {
+          handleCloseEditModal();
+        }
+      } catch (error) {
+        console.error("Erro ao excluir lançamento", error);
+        alert("Não foi possível excluir o lançamento. Tente novamente.");
       }
     });
   }
@@ -524,11 +658,29 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
                             {ACTIVITY_OPTIONS.find((option) => option.value === entry.type)?.label ?? entry.type}
                           </td>
                           <td className="px-4 py-3 font-semibold">{entry.displayAmount}</td>
-                          <td className="px-4 py-3">{entry.paymentMethod}</td>
+                          <td className="px-4 py-3">{formatPayment(entry.paymentMethod)}</td>
                           <td className="px-4 py-3 font-semibold">
                             {currencyFormatter.format(entry.runningBalance)}
                           </td>
-                          <td className="px-4 py-3 text-slate-500">—</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 text-xs">
+                              <button
+                                className="rounded-lg border border-white/10 px-3 py-1 font-semibold text-slate-200 transition hover:border-sky-500 hover:text-sky-300"
+                                type="button"
+                                onClick={() => handleEditEntry(entry)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                className="rounded-lg border border-red-500/40 px-3 py-1 font-semibold text-red-200 transition hover:bg-red-500/10"
+                                type="button"
+                                onClick={() => handleDeleteEntry(entry)}
+                                disabled={isDeleting}
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     ) : (
@@ -691,15 +843,20 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
                   <label className="text-sm font-medium text-slate-200" htmlFor="entry-payment">
                     Forma de pagamento
                   </label>
-                  <input
+                  <select
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
                     id="entry-payment"
                     name="entry-payment"
-                    placeholder="Ex.: PIX, Dinheiro, Cartão"
                     value={entryForm.paymentMethod}
                     onChange={(event) => handleEntryFormChange("paymentMethod", event.target.value)}
                     required
-                  />
+                  >
+                    {PAYMENT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-2">
@@ -828,6 +985,231 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
           </div>
         </div>
       ) : null}
+
+      {editingEntry ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur">
+          <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
+            <header className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Editar lançamento</h3>
+                <p className="text-sm text-slate-300/80">Atualize as informações ou exclua o lançamento definitivamente.</p>
+              </div>
+              <button
+                aria-label="Fechar modal"
+                className="rounded-xl border border-white/10 bg-slate-900/70 px-3 py-1 text-xs font-semibold text-slate-300 transition hover:border-sky-500 hover:text-sky-300"
+                type="button"
+                onClick={handleCloseEditModal}
+              >
+                Fechar
+              </button>
+            </header>
+
+            <form
+              className="mt-6 space-y-5"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleUpdateEntry(event);
+              }}
+            >
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2 md:col-span-1">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-date">
+                    Data
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-date"
+                    type="date"
+                    value={editingEntry.date.slice(0, 10)}
+                    onChange={(event) =>
+                      setEditingEntry((prev) =>
+                        prev ? { ...prev, date: `${event.target.value}T00:00:00.000Z` } : prev,
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-1">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-movement">
+                    Movimentação
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-movement"
+                    value={editingEntry.movement}
+                    onChange={(event) =>
+                      setEditingEntry((prev) => (prev ? { ...prev, movement: event.target.value as MovementOption } : prev))
+                    }
+                    required
+                  >
+                    {MOVEMENT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2 md:col-span-1">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-type">
+                    Tipo
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-type"
+                    value={editingEntry.type}
+                    onChange={(event) =>
+                      setEditingEntry((prev) => (prev ? { ...prev, type: event.target.value as ActivityOption } : prev))
+                    }
+                    required
+                  >
+                    {ACTIVITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-counterpart">
+                    Cliente ou fornecedor
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-counterpart"
+                    value={editingEntry.counterpart}
+                    onChange={(event) =>
+                      setEditingEntry((prev) => (prev ? { ...prev, counterpart: event.target.value } : prev))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-product">
+                    Produto / serviço
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-product"
+                    value={editingEntry.productService}
+                    onChange={(event) =>
+                      setEditingEntry((prev) => (prev ? { ...prev, productService: event.target.value } : prev))
+                    }
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-amount">
+                    Valor
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-amount"
+                    inputMode="decimal"
+                    value={applyCurrencyMask(editingEntry.amount.toString())}
+                    onChange={(event) =>
+                      setEditingEntry((prev) =>
+                        prev
+                          ? {
+                              ...prev,
+                              amount:
+                                Number(normalizeAmountInput(event.target.value)) / 100,
+                            }
+                          : prev,
+                      )
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-payment">
+                    Forma de pagamento
+                  </label>
+                  <select
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-payment"
+                    value={editingEntry.paymentMethod}
+                    onChange={(event) =>
+                      setEditingEntry((prev) =>
+                        prev ? { ...prev, paymentMethod: event.target.value as PaymentOption } : prev,
+                      )
+                    }
+                    required
+                  >
+                    {PAYMENT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-200" htmlFor="edit-notes">
+                    Observações (opcional)
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
+                    id="edit-notes"
+                    value={editingEntry.notes ?? ""}
+                    onChange={(event) =>
+                      setEditingEntry((prev) => (prev ? { ...prev, notes: event.target.value } : prev))
+                    }
+                  />
+                </div>
+              </div>
+
+              {editError ? (
+                <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{editError}</p>
+              ) : null}
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-sky-500 hover:text-sky-300"
+                  type="button"
+                  onClick={handleCloseEditModal}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20"
+                  type="button"
+                  onClick={() => handleDeleteEntry(editingEntry)}
+                  disabled={isDeleting}
+                >
+                  Excluir
+                </button>
+                <button
+                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isEditing}
+                  type="submit"
+                >
+                  {isEditing ? "Salvando..." : "Atualizar lançamento"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
+  );
+}
+
+function formatPayment(label: PaymentOption) {
+  return (
+    PAYMENT_OPTIONS.find((option) => option.value === label)?.label ??
+    label
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (char) => char.toUpperCase())
   );
 }

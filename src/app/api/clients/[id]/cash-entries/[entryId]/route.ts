@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
-import { prismaWithRetry } from "../../../../../lib/prisma-retry";
-import { normalizeCurrencyToNumber } from "../../../../../lib/currency";
+import { prismaWithRetry } from "../../../../../../lib/prisma-retry";
+import { normalizeCurrencyToNumber } from "../../../../../../lib/currency";
 
 type RouteParams = {
   params: {
     id: string;
+    entryId: string;
   };
 };
 
-type CreateEntryPayload = {
+type UpdateEntryPayload = {
   date?: unknown;
   counterpart?: unknown;
   productService?: unknown;
@@ -69,22 +70,11 @@ function formatEntry(entry: {
   };
 }
 
-export async function GET(_request: Request, context: RouteParams) {
+export async function PATCH(request: Request, context: RouteParams) {
   const companyId = parseId(context.params.id);
+  const entryId = parseId(context.params.entryId);
 
-  const entries = await prismaWithRetry((client) =>
-    client.cashEntry.findMany({
-      where: { companyId },
-      orderBy: { date: "desc" },
-    }),
-  );
-
-  return NextResponse.json(entries.map(formatEntry));
-}
-
-export async function POST(request: Request, context: RouteParams) {
-  const companyId = parseId(context.params.id);
-  const payload = (await request.json()) as CreateEntryPayload;
+  const payload = (await request.json()) as UpdateEntryPayload;
 
   const errors: string[] = [];
 
@@ -137,9 +127,12 @@ export async function POST(request: Request, context: RouteParams) {
 
   try {
     const entry = await prismaWithRetry((client) =>
-      client.cashEntry.create({
-        data: {
+      client.cashEntry.update({
+        where: {
+          id: entryId,
           companyId,
+        },
+        data: {
           date: parsedDate!,
           counterpart,
           productService,
@@ -152,13 +145,38 @@ export async function POST(request: Request, context: RouteParams) {
       }),
     );
 
-    return NextResponse.json(formatEntry(entry), { status: 201 });
+    return NextResponse.json(formatEntry(entry));
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
-      return NextResponse.json({ error: "Cliente não encontrado." }, { status: 404 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
     }
 
-    console.error("[POST /api/clients/:id/cash-entries]", error);
-    return NextResponse.json({ error: "Não foi possível registrar o lançamento." }, { status: 500 });
+    console.error("[PATCH /api/clients/:id/cash-entries/:entryId]", error);
+    return NextResponse.json({ error: "Não foi possível atualizar o lançamento." }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteParams) {
+  const companyId = parseId(context.params.id);
+  const entryId = parseId(context.params.entryId);
+
+  try {
+    await prismaWithRetry((client) =>
+      client.cashEntry.delete({
+        where: {
+          id: entryId,
+          companyId,
+        },
+      }),
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+      return NextResponse.json({ error: "Lançamento não encontrado." }, { status: 404 });
+    }
+
+    console.error("[DELETE /api/clients/:id/cash-entries/:entryId]", error);
+    return NextResponse.json({ error: "Não foi possível excluir o lançamento." }, { status: 500 });
   }
 }

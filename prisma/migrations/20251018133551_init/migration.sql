@@ -23,6 +23,8 @@ CREATE TABLE "User" (
     "password" TEXT NOT NULL,
     "name" TEXT,
     "admin" BOOLEAN NOT NULL DEFAULT false,
+    "mustChangePassword" BOOLEAN NOT NULL DEFAULT false,
+    "passwordResetToken" TEXT,
     "companyId" INTEGER,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -59,6 +61,9 @@ CREATE UNIQUE INDEX "Company_cnpj_key" ON "Company"("cnpj");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_passwordResetToken_key" ON "User"("passwordResetToken");
 
 -- CreateIndex
 CREATE INDEX "User_companyId_idx" ON "User"("companyId");

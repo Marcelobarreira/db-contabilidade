@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import LoginForm from "./_components/login-form";
@@ -6,6 +7,10 @@ import { verifyPassword } from "../lib/auth";
 
 type LoginState = {
   error: string;
+};
+
+type HomeProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
 async function loginAction(_: LoginState, formData: FormData): Promise<LoginState | void> {
@@ -18,11 +23,44 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
     return { error: "Preencha e-mail e senha para continuar." };
   }
 
-  const user = await prismaWithRetry((client) => client.user.findUnique({ where: { email } }));
+  const user = await prismaWithRetry((client) =>
+    client.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        password: true,
+        admin: true,
+        mustChangePassword: true,
+      },
+    }),
+  );
 
   if (!user || !verifyPassword(password, user.password)) {
     return { error: "Credenciais inválidas. Tente novamente." };
   }
+
+  if (user.mustChangePassword) {
+    const token = crypto.randomUUID();
+    await prismaWithRetry((client) =>
+      client.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetToken: token,
+        },
+      }),
+    );
+
+    redirect(`/definir-senha?token=${token}`);
+  }
+
+  await prismaWithRetry((client) =>
+    client.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: null },
+      select: { id: true },
+    }),
+  );
 
   if (user.admin) {
     redirect("/admin");
@@ -31,7 +69,12 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
   redirect("/dashboard");
 }
 
-export default function Home() {
+export default function Home({ searchParams }: HomeProps) {
+  const senhaParam = searchParams?.senhaAtualizada;
+  const senhaAtualizada = Array.isArray(senhaParam)
+    ? senhaParam.includes("1")
+    : senhaParam === "1";
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center px-4 py-12 sm:px-6">
       <div className="w-full max-w-5xl grid rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl lg:grid-cols-[1.1fr_420px] overflow-hidden">
@@ -77,6 +120,12 @@ export default function Home() {
                 Entre com suas credenciais corporativas para chegar ao painel financeiro.
               </p>
             </div>
+
+            {senhaAtualizada ? (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                Senha atualizada com sucesso. Faça login com a nova senha.
+              </div>
+            ) : null}
 
             <LoginForm action={loginAction} />
 

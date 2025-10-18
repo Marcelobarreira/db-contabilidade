@@ -24,6 +24,8 @@ model User {
   password   String   // guarde o hash (ex.: argon2/bcrypt)
   name       String?
   admin      Boolean  @default(false)
+  mustChangePassword Boolean @default(false)
+  passwordResetToken String?  @unique
   companyId  Int?     // NULL se admin = true; obrigatório se admin = false
   company    Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
   createdAt  DateTime @default(now())

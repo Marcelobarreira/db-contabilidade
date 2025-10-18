@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState } from "react";
 
 type LoginFormState = {
   error: string;
@@ -14,7 +14,7 @@ type LoginFormProps = {
 const initialState: LoginFormState = { error: "" };
 
 export default function LoginForm({ action }: LoginFormProps) {
-  const [state, formAction] = useFormState(action, initialState);
+  const [state, formAction] = useActionState(action, initialState);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -78,6 +78,7 @@ export default function LoginForm({ action }: LoginFormProps) {
 }
 
 function SubmitButton() {
+  const { useFormStatus } = require("react-dom");
   const { pending } = useFormStatus();
 
   return (

@@ -94,8 +94,14 @@ export default async function AdminDashboard() {
               >
                 Livro-caixa
               </Link>
+              <Link
+                className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300 cursor-pointer"
+                href="/admin/usuarios"
+              >
+                Acessos
+              </Link>
               <button className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 font-semibold transition hover:border-sky-500 hover:text-sky-300">
-                Configurações
+                Configuracoes
               </button>
             </div>
           </div>
@@ -108,21 +114,21 @@ export default async function AdminDashboard() {
             <p className="text-sm font-medium text-slate-300/80">Clientes ativos</p>
             <p className="mt-3 text-3xl font-semibold text-white">{totalClients}</p>
             <p className="mt-4 text-xs text-slate-400">
-              Total de empresas cadastradas para operações no portal.
+              Total de empresas cadastradas para operacoes no portal.
             </p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
-            <p className="text-sm font-medium text-slate-300/80">Usuários cadastrados</p>
+            <p className="text-sm font-medium text-slate-300/80">Usuarios cadastrados</p>
             <p className="mt-3 text-3xl font-semibold text-white">{totalColaboradores}</p>
             <p className="mt-4 text-xs text-slate-400">
-              Contagem geral de acessos vinculados à DB Contabilidade.
+              Contagem geral de acessos vinculados a DB Contabilidade.
             </p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
             <p className="text-sm font-medium text-slate-300/80">Administradores</p>
             <p className="mt-3 text-3xl font-semibold text-white">{totalAdministradores}</p>
             <p className="mt-4 text-xs text-slate-400">
-              Usuários com acesso total à gestão de clientes e configurações.
+              Usuarios com acesso total a gestao de clientes e configuracoes.
             </p>
           </article>
         </section>
@@ -132,7 +138,7 @@ export default async function AdminDashboard() {
             <div>
               <h2 className="text-lg font-semibold text-white">Clientes recentes</h2>
               <p className="text-sm text-slate-300/80">
-                Últimas empresas cadastradas no portal.
+                Ultimas empresas cadastradas no portal.
               </p>
             </div>
           </header>
@@ -162,7 +168,7 @@ export default async function AdminDashboard() {
             </ul>
           ) : (
             <p className="mt-6 text-sm text-slate-300/80">
-              Nenhum cliente cadastrado até o momento. Utilize o botão &ldquo;Novo cliente&rdquo; para começar.
+              Nenhum cliente cadastrado ate o momento. Utilize o botao &ldquo;Novo cliente&rdquo; para comecar.
             </p>
           )}
         </section>
