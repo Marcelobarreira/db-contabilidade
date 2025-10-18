@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { useFormStatus } from "react-dom";
 
 type LoginFormState = {
   error: string;
 };
 
 type LoginFormProps = {
-  action: (state: LoginFormState, formData: FormData) => Promise<LoginFormState | void>;
+  action: (state: LoginFormState, formData: FormData) => Promise<LoginFormState>;
 };
 
 const initialState: LoginFormState = { error: "" };
@@ -66,7 +67,7 @@ export default function LoginForm({ action }: LoginFormProps) {
         </Link>
       </div>
 
-      {state.error ? (
+      {state?.error ? (
         <p className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {state.error}
         </p>
@@ -78,7 +79,6 @@ export default function LoginForm({ action }: LoginFormProps) {
 }
 
 function SubmitButton() {
-  const { useFormStatus } = require("react-dom");
   const { pending } = useFormStatus();
 
   return (
