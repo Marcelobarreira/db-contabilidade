@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma, MovementCategory, ActivityType } from "@prisma/client";
 import { prismaWithRetry } from "../../../../../lib/prisma-retry";
 import { normalizeCurrencyToNumber } from "../../../../../lib/currency";
 
@@ -135,6 +135,9 @@ export async function POST(request: Request, context: RouteParams) {
     return NextResponse.json({ error: errors.join(" ") }, { status: 400 });
   }
 
+  const movementValue = movement as MovementCategory;
+  const typeValue = type as ActivityType;
+
   try {
     const entry = await prismaWithRetry((client) =>
       client.cashEntry.create({
@@ -143,8 +146,8 @@ export async function POST(request: Request, context: RouteParams) {
           date: parsedDate!,
           counterpart,
           productService,
-          movement: movement as any,
-          type: type as any,
+          movement: movementValue,
+          type: typeValue,
           paymentMethod,
           amount: new Prisma.Decimal(amountNumber),
           notes,
