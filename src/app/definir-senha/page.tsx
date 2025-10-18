@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import SetPasswordForm from "../_components/set-password-form";
 import { prismaWithRetry } from "../../lib/prisma-retry";
 import { hashPassword } from "../../lib/auth";
@@ -11,7 +11,7 @@ type ResetState = {
   error: string;
 };
 
-async function resetPasswordAction(_: ResetState, formData: FormData): Promise<ResetState | void> {
+async function resetPasswordAction(_: ResetState, formData: FormData): Promise<ResetState> {
   "use server";
 
   const token = formData.get("token");
@@ -19,7 +19,7 @@ async function resetPasswordAction(_: ResetState, formData: FormData): Promise<R
   const confirmPassword = formData.get("confirmPassword");
 
   if (typeof token !== "string" || !token) {
-    return { error: "Link inválido ou expirado." };
+    return { error: "Link invalido ou expirado." };
   }
 
   if (typeof password !== "string" || password.length < 8) {
@@ -38,7 +38,7 @@ async function resetPasswordAction(_: ResetState, formData: FormData): Promise<R
   );
 
   if (!user) {
-    return { error: "Link inválido ou expirado." };
+    return { error: "Link invalido ou expirado." };
   }
 
   const hashedPassword = hashPassword(password);
@@ -55,6 +55,7 @@ async function resetPasswordAction(_: ResetState, formData: FormData): Promise<R
   );
 
   redirect("/?senhaAtualizada=1");
+  return { error: "" };
 }
 
 export default async function DefinirSenhaPage({ searchParams }: PageProps) {
@@ -77,7 +78,7 @@ export default async function DefinirSenhaPage({ searchParams }: PageProps) {
           <p className="text-xs font-semibold uppercase tracking-[0.4em] text-slate-400">Primeiro acesso</p>
           <h1 className="text-3xl font-semibold text-white">Definir nova senha</h1>
           <p className="text-sm text-slate-300/80">
-            Por segurança, defina uma senha definitiva antes de entrar no portal DB Contabilidade.
+            Por seguranca, defina uma senha definitiva antes de entrar no portal DB Contabilidade.
           </p>
         </header>
 
@@ -100,7 +101,7 @@ export default async function DefinirSenhaPage({ searchParams }: PageProps) {
           </div>
         ) : (
           <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-200">
-            O link informado não é válido ou já foi utilizado. Solicite um novo acesso ao administrador.
+            O link informado nao e valido ou ja foi utilizado. Solicite um novo acesso ao administrador.
           </div>
         )}
       </div>

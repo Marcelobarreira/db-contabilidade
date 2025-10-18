@@ -1,14 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { Prisma, MovementCategory, ActivityType } from "@prisma/client";
 import { prismaWithRetry } from "../../../../../../lib/prisma-retry";
 import { normalizeCurrencyToNumber } from "../../../../../../lib/currency";
-
-type RouteParams = {
-  params: {
-    id: string;
-    entryId: string;
-  };
-};
 
 type UpdateEntryPayload = {
   date?: unknown;
@@ -70,9 +63,13 @@ function formatEntry(entry: {
   };
 }
 
-export async function PATCH(request: Request, context: RouteParams) {
-  const companyId = parseId(context.params.id);
-  const entryId = parseId(context.params.entryId);
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string; entryId: string }> },
+) {
+  const params = await context.params;
+  const companyId = parseId(params.id);
+  const entryId = parseId(params.entryId);
 
   const payload = (await request.json()) as UpdateEntryPayload;
 
@@ -159,9 +156,13 @@ export async function PATCH(request: Request, context: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, context: RouteParams) {
-  const companyId = parseId(context.params.id);
-  const entryId = parseId(context.params.entryId);
+export async function DELETE(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string; entryId: string }> },
+) {
+  const params = await context.params;
+  const companyId = parseId(params.id);
+  const entryId = parseId(params.entryId);
 
   try {
     await prismaWithRetry((client) =>

@@ -17,6 +17,7 @@ const initialState: ResetState = {
 
 export default function SetPasswordForm({ token, action }: SetPasswordFormProps) {
   const [state, formAction] = useFormState(action, initialState);
+  const errorMessage = typeof state === "object" && state !== null ? state.error : "";
 
   return (
     <form action={formAction} className="space-y-6 max-w-md">
@@ -52,8 +53,8 @@ export default function SetPasswordForm({ token, action }: SetPasswordFormProps)
         />
       </div>
 
-      {state.error ? (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{state.error}</p>
+      {errorMessage ? (
+        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{errorMessage}</p>
       ) : null}
 
       <SubmitButton />

@@ -1,13 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { Prisma, MovementCategory, ActivityType } from "@prisma/client";
 import { prismaWithRetry } from "../../../../../lib/prisma-retry";
 import { normalizeCurrencyToNumber } from "../../../../../lib/currency";
-
-type RouteParams = {
-  params: {
-    id: string;
-  };
-};
 
 type CreateEntryPayload = {
   date?: unknown;
@@ -69,8 +63,9 @@ function formatEntry(entry: {
   };
 }
 
-export async function GET(_request: Request, context: RouteParams) {
-  const companyId = parseId(context.params.id);
+export async function GET(_request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
+  const companyId = parseId(params.id);
 
   const entries = await prismaWithRetry((client) =>
     client.cashEntry.findMany({
@@ -82,8 +77,9 @@ export async function GET(_request: Request, context: RouteParams) {
   return NextResponse.json(entries.map(formatEntry));
 }
 
-export async function POST(request: Request, context: RouteParams) {
-  const companyId = parseId(context.params.id);
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const params = await context.params;
+  const companyId = parseId(params.id);
   const payload = (await request.json()) as CreateEntryPayload;
 
   const errors: string[] = [];

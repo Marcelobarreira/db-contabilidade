@@ -1,4 +1,4 @@
-import crypto from "node:crypto";
+﻿import crypto from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import LoginForm from "./_components/login-form";
@@ -13,7 +13,7 @@ type HomeProps = {
   searchParams?: Record<string, string | string[] | undefined>;
 };
 
-async function loginAction(_: LoginState, formData: FormData): Promise<LoginState | void> {
+async function loginAction(_: LoginState, formData: FormData): Promise<LoginState> {
   "use server";
 
   const email = formData.get("email");
@@ -37,7 +37,7 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
   );
 
   if (!user || !verifyPassword(password, user.password)) {
-    return { error: "Credenciais inválidas. Tente novamente." };
+    return { error: "Credenciais invalidas. Tente novamente." };
   }
 
   if (user.mustChangePassword) {
@@ -52,6 +52,7 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
     );
 
     redirect(`/definir-senha?token=${token}`);
+    return { error: "" };
   }
 
   await prismaWithRetry((client) =>
@@ -64,16 +65,16 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
 
   if (user.admin) {
     redirect("/admin");
+    return { error: "" };
   }
 
   redirect("/dashboard");
+  return { error: "" };
 }
 
 export default function Home({ searchParams }: HomeProps) {
   const senhaParam = searchParams?.senhaAtualizada;
-  const senhaAtualizada = Array.isArray(senhaParam)
-    ? senhaParam.includes("1")
-    : senhaParam === "1";
+  const senhaAtualizada = Array.isArray(senhaParam) ? senhaParam.includes("1") : senhaParam === "1";
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center px-4 py-12 sm:px-6">
@@ -86,29 +87,29 @@ export default function Home({ searchParams }: HomeProps) {
               <span>Portal</span>
             </header>
             <div className="space-y-6">
-              <h1 className="text-4xl font-semibold leading-tight">Contabilidade com confiança e tecnologia</h1>
+              <h1 className="text-4xl font-semibold leading-tight">Contabilidade com confianca e tecnologia</h1>
               <p className="text-slate-100/80 text-lg">
-                Centralize obrigações fiscais, acompanhe clientes e visualize indicadores em tempo real. O painel DB
-                Contabilidade mantém sua equipe alinhada e os dados seguros.
+                Centralize obrigacoes fiscais, acompanhe clientes e visualize indicadores em tempo real. O painel DB
+                Contabilidade mantem sua equipe alinhada e os dados seguros.
               </p>
             </div>
             <dl className="space-y-6 text-sm text-slate-100/70">
               <div>
                 <dt className="font-semibold text-slate-100">Dashboard inteligente</dt>
-                <dd>Resumo contábil, alertas de pendências e calendário fiscal integrado.</dd>
+                <dd>Resumo contabil, alertas de pendencias e calendario fiscal integrado.</dd>
               </div>
               <div>
                 <dt className="font-semibold text-slate-100">Fluxos automatizados</dt>
-                <dd>Envio automático de documentos e sincronização com o sistema financeiro.</dd>
+                <dd>Envio automatico de documentos e sincronizacao com o sistema financeiro.</dd>
               </div>
               <div>
                 <dt className="font-semibold text-slate-100">Equipe alinhada</dt>
-                <dd>Atribuição de tarefas e histórico consolidado por cliente.</dd>
+                <dd>Atribuicao de tarefas e historico consolidado por cliente.</dd>
               </div>
             </dl>
           </div>
           <footer className="relative z-10 text-xs text-slate-100/60">
-            © {new Date().getFullYear()} DB Contabilidade. Todos os direitos reservados.
+            Todos os direitos reservados DB Contabilidade.
           </footer>
         </section>
 
@@ -123,7 +124,7 @@ export default function Home({ searchParams }: HomeProps) {
 
             {senhaAtualizada ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                Senha atualizada com sucesso. Faça login com a nova senha.
+                Senha atualizada com sucesso. Faca login com a nova senha.
               </div>
             ) : null}
 
@@ -131,7 +132,7 @@ export default function Home({ searchParams }: HomeProps) {
 
             <div className="space-y-3 text-center text-sm text-slate-600 dark:text-slate-400">
               <p>
-                É a primeira vez por aqui?
+                E a primeira vez por aqui?
                 <Link
                   className="ml-2 font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300"
                   href="/solicitar-acesso"
@@ -140,7 +141,7 @@ export default function Home({ searchParams }: HomeProps) {
                 </Link>
               </p>
               <p className="text-xs text-slate-400 dark:text-slate-500">
-                Ao continuar, você concorda com a política de privacidade e termos de uso da DB Contabilidade.
+                Ao continuar, voce concorda com a politica de privacidade e termos de uso da DB Contabilidade.
               </p>
             </div>
           </div>
@@ -149,3 +150,4 @@ export default function Home({ searchParams }: HomeProps) {
     </main>
   );
 }
+
