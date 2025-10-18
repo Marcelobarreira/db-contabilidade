@@ -1,5 +1,6 @@
 import { prismaWithRetry } from "../../lib/prisma-retry";
 import Link from "next/link";
+import Image from "next/image";
 
 type ClientSummary = {
   id: number;
@@ -74,11 +75,16 @@ export default async function AdminDashboard() {
       <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-600 text-lg font-semibold tracking-wide">
-              DB
-            </div>
+            <Image
+              src="/dbcontabilidade.jpg"
+              alt="DB Contabilidade"
+              width={56}
+              height={56}
+              className="h-14 w-14 rounded-2xl border border-white/10 bg-white object-cover"
+              priority
+            />
             <div>
-              <p className="text-lg font-semibold tracking-wide text-white">DB Contabilidade</p>
+              
               <p className="text-sm text-slate-300/80">Painel de Controle Administrativo</p>
             </div>
           </div>
@@ -89,7 +95,7 @@ export default async function AdminDashboard() {
             </span>
             <div className="flex items-center gap-3">
               <Link
-                className="rounded-xl border border-sky-500/40 bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 cursor-pointer"
+                className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300 cursor-pointer"
                 href="/admin/livro-caixa"
               >
                 Livro-caixa
