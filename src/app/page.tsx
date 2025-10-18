@@ -1,103 +1,102 @@
-import Image from "next/image";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import LoginForm from "./_components/login-form";
+import { prismaWithRetry } from "../lib/prisma-retry";
+import { verifyPassword } from "../lib/auth";
+
+type LoginState = {
+  error: string;
+};
+
+async function loginAction(_: LoginState, formData: FormData): Promise<LoginState | void> {
+  "use server";
+
+  const email = formData.get("email");
+  const password = formData.get("password");
+
+  if (typeof email !== "string" || typeof password !== "string") {
+    return { error: "Preencha e-mail e senha para continuar." };
+  }
+
+  const user = await prismaWithRetry((client) => client.user.findUnique({ where: { email } }));
+
+  if (!user || !verifyPassword(password, user.password)) {
+    return { error: "Credenciais inválidas. Tente novamente." };
+  }
+
+  if (user.admin) {
+    redirect("/admin");
+  }
+
+  redirect("/dashboard");
+}
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex items-center justify-center px-4 py-12 sm:px-6">
+      <div className="w-full max-w-5xl grid rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl lg:grid-cols-[1.1fr_420px] overflow-hidden">
+        <section className="relative hidden lg:flex flex-col gap-10 p-12">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-sky-900/60 to-slate-900" />
+          <div className="relative z-10 flex flex-col gap-16">
+            <header className="flex justify-between items-start text-sm font-semibold uppercase tracking-[0.4em] text-slate-100/60">
+              <span>DB Contabilidade</span>
+              <span>Portal</span>
+            </header>
+            <div className="space-y-6">
+              <h1 className="text-4xl font-semibold leading-tight">Contabilidade com confiança e tecnologia</h1>
+              <p className="text-slate-100/80 text-lg">
+                Centralize obrigações fiscais, acompanhe clientes e visualize indicadores em tempo real. O painel DB
+                Contabilidade mantém sua equipe alinhada e os dados seguros.
+              </p>
+            </div>
+            <dl className="space-y-6 text-sm text-slate-100/70">
+              <div>
+                <dt className="font-semibold text-slate-100">Dashboard inteligente</dt>
+                <dd>Resumo contábil, alertas de pendências e calendário fiscal integrado.</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-slate-100">Fluxos automatizados</dt>
+                <dd>Envio automático de documentos e sincronização com o sistema financeiro.</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-slate-100">Equipe alinhada</dt>
+                <dd>Atribuição de tarefas e histórico consolidado por cliente.</dd>
+              </div>
+            </dl>
+          </div>
+          <footer className="relative z-10 text-xs text-slate-100/60">
+            © {new Date().getFullYear()} DB Contabilidade. Todos os direitos reservados.
+          </footer>
+        </section>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        <section className="bg-white/95 text-slate-900 px-8 py-12 sm:px-12 dark:bg-slate-950/90 dark:text-slate-100">
+          <div className="mx-auto w-full max-w-sm space-y-10">
+            <div className="space-y-3 text-center">
+              <h2 className="text-2xl font-semibold">Acesse sua conta</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Entre com suas credenciais corporativas para chegar ao painel financeiro.
+              </p>
+            </div>
+
+            <LoginForm action={loginAction} />
+
+            <div className="space-y-3 text-center text-sm text-slate-600 dark:text-slate-400">
+              <p>
+                É a primeira vez por aqui?
+                <Link
+                  className="ml-2 font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400 dark:hover:text-sky-300"
+                  href="/solicitar-acesso"
+                >
+                  Solicitar acesso
+                </Link>
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Ao continuar, você concorda com a política de privacidade e termos de uso da DB Contabilidade.
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
