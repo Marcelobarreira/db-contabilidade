@@ -77,7 +77,7 @@ export default async function AdminDashboard() {
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Image
-              src="/dbcontabilidade.png"
+              src="/dbcontabilidade.jpg"
               alt="DB Contabilidade"
               width={56}
               height={56}
