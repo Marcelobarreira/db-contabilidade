@@ -33,7 +33,7 @@ export default async function LivroCaixaPage() {
             <p className="text-sm uppercase tracking-[0.3em] text-slate-300/80">Ferramentas</p>
             <h1 className="mt-2 text-3xl font-semibold text-white">Livro-caixa</h1>
             <p className="mt-3 text-sm text-slate-300/80">
-              Selecione um cliente autorizado ou cadastre um novo para iniciar os lançamentos financeiros.
+              Selecione uma empresa autorizado ou cadastre um novo para iniciar os lançamentos financeiros.
             </p>
           </div>
           <div className="flex flex-col gap-3 text-sm text-slate-300/80 sm:items-end">

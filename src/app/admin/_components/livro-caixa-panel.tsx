@@ -185,10 +185,13 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
   const [isEditing, startEditTransition] = useTransition();
   const [editError, setEditError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [selectedEntryIds, setSelectedEntryIds] = useState<number[]>([]);
   const [isImporting, startImportTransition] = useTransition();
   const [importError, setImportError] = useState<string | null>(null);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (typeof selectedClientId !== "number") {
@@ -232,6 +235,17 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       cancelled = true;
     };
   }, [selectedClientId]);
+
+  useEffect(() => {
+    setSelectedEntryIds([]);
+  }, [selectedClientId]);
+
+  useEffect(() => {
+    setSelectedEntryIds((prev) => {
+      const valid = prev.filter((id) => entries.some((entry) => entry.id === id));
+      return valid.length === prev.length ? prev : valid;
+    });
+  }, [entries]);
 
   const formattedClients = useMemo(
     () =>
@@ -289,6 +303,17 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
         };
       });
   }, [filteredEntries]);
+
+  const selectedEntryIdsSet = useMemo(() => new Set(selectedEntryIds), [selectedEntryIds]);
+  const selectedEntriesCount = selectedEntryIds.length;
+  const allVisibleSelected =
+    enhancedEntries.length > 0 && enhancedEntries.every((entry) => selectedEntryIdsSet.has(entry.id));
+
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      selectAllCheckboxRef.current.indeterminate = selectedEntriesCount > 0 && !allVisibleSelected;
+    }
+  }, [selectedEntriesCount, allVisibleSelected]);
 
   const totals = useMemo(() => {
     return enhancedEntries.reduce(
@@ -399,7 +424,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
     event.preventDefault();
 
     if (typeof selectedClientId !== "number") {
-      setEntryFormError("Selecione um cliente antes de adicionar o lançamento.");
+      setEntryFormError("Selecione uma empresa antes de adicionar o lançamento.");
       return;
     }
 
@@ -544,6 +569,65 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
     });
   }
 
+  function handleToggleEntrySelection(entryId: number) {
+    setSelectedEntryIds((prev) => {
+      if (prev.includes(entryId)) {
+        return prev.filter((id) => id !== entryId);
+      }
+      return [...prev, entryId];
+    });
+  }
+
+  function handleToggleSelectAll() {
+    if (allVisibleSelected) {
+      setSelectedEntryIds((prev) => prev.filter((id) => !enhancedEntries.some((entry) => entry.id === id)));
+    } else {
+      setSelectedEntryIds((prev) => {
+        const next = new Set(prev);
+        enhancedEntries.forEach((entry) => next.add(entry.id));
+        return Array.from(next);
+      });
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedEntriesCount || typeof selectedClientId !== "number") {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        selectedEntriesCount === 1
+          ? "Excluir o lançamento selecionado?"
+          : `Excluir ${selectedEntriesCount} lançamentos selecionados?`,
+      )
+    ) {
+      return;
+    }
+
+    setBulkDeleting(true);
+    try {
+      for (const entryId of selectedEntryIds) {
+        const response = await fetch(`/api/clients/${selectedClientId}/cash-entries/${entryId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({ error: "Erro inesperado ao excluir." }));
+          throw new Error(body.error ?? "Não foi possível excluir um dos lançamentos selecionados.");
+        }
+      }
+
+      setEntries((prev) => prev.filter((entry) => !selectedEntryIdsSet.has(entry.id)));
+      setSelectedEntryIds([]);
+    } catch (error) {
+      console.error("Erro ao excluir lançamentos em massa", error);
+      alert("Não foi possível excluir todos os lançamentos selecionados. Tente novamente.");
+    } finally {
+      setBulkDeleting(false);
+    }
+  }
+
   const hasClients = formattedClients.length > 0;
   const importTransactionsCount = importPreview?.transactions.length ?? 0;
 
@@ -554,7 +638,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
           <h2 className="text-lg font-semibold text-white">Livro-caixa</h2>
           <p className="text-sm text-slate-300/80">
             {canCreateClients
-              ? "Selecione um cliente para gerenciar lançamentos ou cadastre um novo."
+              ? "Selecione uma empresa para gerenciar lançamentos ou cadastre um novo."
               : "Selecione o cliente autorizado para gerenciar os lançamentos."}
           </p>
         </div>
@@ -585,7 +669,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
         >
           {hasClients ? (
             <>
-              <option value="">Selecione um cliente</option>
+              <option value="">Selecione uma empresa</option>
               {formattedClients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name} · {client.formattedCnpj}
@@ -933,7 +1017,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                     const file = event.target.files?.[0];
                     if (!file) return;
                     if (typeof selectedClientId !== "number") {
-                      setImportError("Selecione um cliente antes de importar.");
+                      setImportError("Selecione uma empresa antes de importar.");
                       return;
                     }
                     setImportError(null);
