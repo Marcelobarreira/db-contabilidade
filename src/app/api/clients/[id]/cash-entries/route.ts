@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     errors.push("Informe a data do lançamento.");
   }
   if (!counterpart) {
-    errors.push("Informe o cliente ou fornecedor.");
+    errors.push("Informe a empresa ou fornecedor.");
   }
   if (!productService) {
     errors.push("Informe o produto ou serviço.");
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     return NextResponse.json(formatEntry(entry), { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2003") {
-      return NextResponse.json({ error: "Cliente não encontrado." }, { status: 404 });
+      return NextResponse.json({ error: "Empresa não encontrada." }, { status: 404 });
     }
 
     console.error("[POST /api/clients/:id/cash-entries]", error);

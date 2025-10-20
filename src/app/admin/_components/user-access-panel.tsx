@@ -90,7 +90,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
     }
 
     if (!payload.admin && !payload.cnpj) {
-      setFeedback({ error: "Informe o CNPJ do cliente para criar um acesso comum." });
+      setFeedback({ error: "Informe o CNPJ da empresa para criar um acesso comum." });
       return;
     }
 
@@ -129,7 +129,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
         setFeedback({
           success: createdUser.admin
             ? "Acesso administrativo criado com sucesso. Compartilhe a senha temporaria com o administrador."
-            : "Acesso criado com sucesso. Envie as credenciais temporarias ao cliente.",
+            : "Acesso criado com sucesso. Envie as credenciais temporarias ao contato da empresa.",
         });
       } catch (error) {
         console.error("Erro ao criar usuário comum", error);
@@ -143,7 +143,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
       <header className="space-y-2">
         <h2 className="text-lg font-semibold text-white">Criar acesso de usuário</h2>
         <p className="text-sm text-slate-300/80">
-          Conceda acesso ao portal para clientes e colaboradores. A senha temporária exigirá redefinição no primeiro login.
+          Conceda acesso ao portal para empresas e colaboradores. A senha temporária exigirá redefinição no primeiro login.
         </p>
       </header>
 
@@ -208,7 +208,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
             <p className="text-xs text-slate-500">
               {form.admin
                 ? "Para administradores o CNPJ não é necessário."
-                : "Você pode copiar o CNPJ diretamente da lista de clientes abaixo."}
+                : "Você pode copiar o CNPJ diretamente da lista de empresas abaixo."}
             </p>
           </div>
         </div>
@@ -255,9 +255,9 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
       <section className="space-y-4">
         <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-base font-semibold text-white">Clientes cadastrados</h3>
+            <h3 className="text-base font-semibold text-white">Empresas cadastradas</h3>
             <p className="text-xs text-slate-400">
-              Utilize os CNPJs abaixo para associar acessos aos respectivos clientes.
+              Utilize os CNPJs abaixo para associar acessos às respectivas empresas.
             </p>
           </div>
         </header>
@@ -279,7 +279,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
               </button>
             ))
           ) : (
-            <p className="text-sm text-slate-400">Nenhum cliente cadastrado até o momento.</p>
+            <p className="text-sm text-slate-400">Nenhuma empresa cadastrada até o momento.</p>
           )}
         </div>
       </section>
@@ -299,7 +299,7 @@ export default function UserAccessPanel({ companies, initialUsers }: UserAccessP
                 <tr>
                   <th className="px-4 py-3 text-left">E-mail</th>
                   <th className="px-4 py-3 text-left">Perfil</th>
-                  <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Empresa</th>
                   <th className="px-4 py-3 text-left">Criado em</th>
                   <th className="px-4 py-3 text-left">Status</th>
                 </tr>

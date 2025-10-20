@@ -102,7 +102,7 @@ export default async function Home({ searchParams }: HomeProps) {
             <div className="space-y-6">
               <h1 className="text-4xl font-semibold leading-tight">Contabilidade com confianca e tecnologia</h1>
               <p className="text-slate-100/80 text-lg">
-                Centralize obrigacoes fiscais, acompanhe clientes e visualize indicadores em tempo real. O painel DB
+                Centralize obrigacoes fiscais, acompanhe empresas e visualize indicadores em tempo real. O painel DB
                 Contabilidade mantem sua equipe alinhada e os dados seguros.
               </p>
             </div>
@@ -117,7 +117,7 @@ export default async function Home({ searchParams }: HomeProps) {
               </div>
               <div>
                 <dt className="font-semibold text-slate-100">Equipe alinhada</dt>
-                <dd>Atribuicao de tarefas e historico consolidado por cliente.</dd>
+                <dd>Atribuicao de tarefas e historico consolidado por empresa.</dd>
               </div>
             </dl>
           </div>

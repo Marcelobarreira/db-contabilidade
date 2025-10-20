@@ -89,7 +89,7 @@ export default async function ClientDashboard() {
               priority
             />
             <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-slate-300/80">Área do cliente</p>
+              <p className="text-sm uppercase tracking-[0.3em] text-slate-300/80">Área da empresa</p>
               <h1 className="text-3xl font-semibold text-white">{company.name}</h1>
               <p className="text-sm text-slate-300/80">CNPJ {company.cnpj}</p>
             </div>

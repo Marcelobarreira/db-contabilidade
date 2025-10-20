@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import LogoutButton from "../_components/logout-button";
 
-type ClientSummary = {
+type CompanySummary = {
   id: number;
   name: string;
   email: string;
@@ -39,7 +39,7 @@ function formatDateTime(date: Date) {
 }
 
 export default async function AdminDashboard() {
-  const [clients, totalUsers, adminUsers] = await Promise.all([
+  const [companies, totalUsers, adminUsers] = await Promise.all([
     prismaWithRetry((client) =>
       client.company.findMany({
         orderBy: { name: "asc" },
@@ -56,16 +56,16 @@ export default async function AdminDashboard() {
     prismaWithRetry((client) => client.user.count({ where: { admin: true } })),
   ]);
 
-  const clientsSummary: ClientSummary[] = clients.map((client) => ({
-    ...client,
-    cnpj: client.cnpj,
+  const companiesSummary: CompanySummary[] = companies.map((company) => ({
+    ...company,
+    cnpj: company.cnpj,
   }));
 
-  const totalClients = clientsSummary.length;
+  const totalCompanies = companiesSummary.length;
   const totalColaboradores = totalUsers;
   const totalAdministradores = adminUsers;
 
-  const recentClients = clientsSummary
+  const recentCompanies = companiesSummary
     .slice()
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
     .slice(0, 5);
@@ -118,8 +118,8 @@ export default async function AdminDashboard() {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10">
         <section className="grid gap-4 md:grid-cols-3">
           <article className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
-            <p className="text-sm font-medium text-slate-300/80">Clientes ativos</p>
-            <p className="mt-3 text-3xl font-semibold text-white">{totalClients}</p>
+            <p className="text-sm font-medium text-slate-300/80">Empresas ativas</p>
+            <p className="mt-3 text-3xl font-semibold text-white">{totalCompanies}</p>
             <p className="mt-4 text-xs text-slate-400">
               Total de empresas cadastradas para operacoes no portal.
             </p>
@@ -135,7 +135,7 @@ export default async function AdminDashboard() {
             <p className="text-sm font-medium text-slate-300/80">Administradores</p>
             <p className="mt-3 text-3xl font-semibold text-white">{totalAdministradores}</p>
             <p className="mt-4 text-xs text-slate-400">
-              Usuarios com acesso total a gestao de clientes e configuracoes.
+              Usuarios com acesso total a gestao de empresas e configuracoes.
             </p>
           </article>
         </section>
@@ -143,29 +143,29 @@ export default async function AdminDashboard() {
         <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
           <header className="flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-white">Clientes recentes</h2>
+              <h2 className="text-lg font-semibold text-white">Empresas recentes</h2>
               <p className="text-sm text-slate-300/80">Ultimas empresas cadastradas no portal.</p>
             </div>
           </header>
 
-          {recentClients.length > 0 ? (
+          {recentCompanies.length > 0 ? (
             <ul className="mt-6 space-y-4">
-              {recentClients.map((client) => (
+              {recentCompanies.map((company) => (
                 <li
-                  key={client.id}
+                  key={company.id}
                   className="flex flex-col gap-2 rounded-2xl border border-white/5 bg-slate-900/60 px-4 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-white">{client.name}</p>
-                    <p className="text-xs text-slate-400">{client.email}</p>
+                    <p className="text-sm font-semibold text-white">{company.name}</p>
+                    <p className="text-xs text-slate-400">{company.email}</p>
                   </div>
                   <div className="flex flex-col items-start gap-2 text-xs text-slate-400 sm:flex-row sm:items-center sm:gap-4">
                     <span className="rounded-xl border border-white/10 bg-white/10 px-3 py-1 font-semibold tracking-wide text-slate-200">
-                      {formatCnpj(client.cnpj)}
+                      {formatCnpj(company.cnpj)}
                     </span>
                     <span>
                       Criado em:&nbsp;
-                      <strong className="font-semibold text-slate-200">{formatDate(client.createdAt)}</strong>
+                      <strong className="font-semibold text-slate-200">{formatDate(company.createdAt)}</strong>
                     </span>
                   </div>
                 </li>
@@ -173,7 +173,7 @@ export default async function AdminDashboard() {
             </ul>
           ) : (
             <p className="mt-6 text-sm text-slate-300/80">
-              Nenhum cliente cadastrado ate o momento. Utilize o botao &ldquo;Novo cliente&rdquo; para comecar.
+              Nenhuma empresa cadastrada ate o momento. Utilize o botao &ldquo;Nova empresa&rdquo; para comecar.
             </p>
           )}
         </section>

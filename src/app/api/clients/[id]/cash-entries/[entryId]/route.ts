@@ -88,7 +88,7 @@ export async function PATCH(
     errors.push("Informe a data do lançamento.");
   }
   if (!counterpart) {
-    errors.push("Informe o cliente ou fornecedor.");
+    errors.push("Informe a empresa ou fornecedor.");
   }
   if (!productService) {
     errors.push("Informe o produto ou serviço.");

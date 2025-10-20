@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     );
 
     if (!company) {
-      return NextResponse.json({ error: "Nenhum cliente encontrado para este CNPJ." }, { status: 404 });
+      return NextResponse.json({ error: "Nenhuma empresa encontrada para este CNPJ." }, { status: 404 });
     }
 
     companyId = company.id;

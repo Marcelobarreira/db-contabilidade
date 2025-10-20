@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!session.admin) {
-    return NextResponse.json({ error: "Apenas administradores podem criar clientes." }, { status: 403 });
+    return NextResponse.json({ error: "Apenas administradores podem criar empresas." }, { status: 403 });
   }
 
   const payload = (await request.json()) as CreateClientPayload;
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
 
   if (!rawName || rawName.length < 2) {
     return NextResponse.json(
-      { error: "Informe o nome do cliente." },
+      { error: "Informe o nome da empresa." },
       { status: 400 },
     );
   }
@@ -118,12 +118,12 @@ export async function POST(request: NextRequest) {
           : [];
 
       const message = targets.some((field) => field.includes("email"))
-        ? "Já existe um cliente com este e-mail."
+        ? "Já existe uma empresa com este e-mail."
         : targets.some((field) => field.includes("cnpj"))
-          ? "Já existe um cliente com este CNPJ."
+          ? "Já existe uma empresa com este CNPJ."
           : targets.some((field) => field.includes("name"))
-            ? "Já existe um cliente com este nome."
-            : "Cliente duplicado.";
+            ? "Já existe uma empresa com este nome."
+            : "Empresa duplicada.";
 
       return NextResponse.json(
         { error: message },
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
     console.error("[POST /api/clients]", error);
     return NextResponse.json(
-      { error: "Não foi possível criar o cliente." },
+      { error: "Não foi possível cadastrar a empresa." },
       { status: 500 },
     );
   }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 import type { MovementCategory } from "@prisma/client";
 
-type Client = {
+type Company = {
   id: number;
   name: string;
   email: string;
@@ -163,7 +163,12 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       cnpj: client.cnpj.replace(/\D/g, ""),
     })),
   );
-  const [selectedClientId, setSelectedClientId] = useState<number | "">("");
+  const [selectedClientId, setSelectedClientId] = useState<number | "">(() => {
+    if (!canCreateClients && initialClients.length === 1) {
+      return initialClients[0].id;
+    }
+    return "";
+  });
 
   const [clientModalOpen, setClientModalOpen] = useState(false);
   const [clientForm, setClientForm] = useState<ClientFormState>(initialClientForm);
@@ -221,7 +226,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       } catch (error) {
         if (!cancelled) {
           console.error("Erro ao buscar lançamentos", error);
-          setEntriesError("Não foi possível carregar os lançamentos deste cliente.");
+          setEntriesError("Não foi possível carregar os lançamentos dessa empresa.");
           setEntries([]);
         }
       } finally {
@@ -246,6 +251,16 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       return valid.length === prev.length ? prev : valid;
     });
   }, [entries]);
+
+  useEffect(() => {
+    if (canCreateClients) {
+      return;
+    }
+    if (clients.length === 1) {
+      const singleClientId = clients[0].id;
+      setSelectedClientId((prev) => (prev === singleClientId ? prev : singleClientId));
+    }
+  }, [canCreateClients, clients]);
 
   const formattedClients = useMemo(
     () =>
@@ -379,7 +394,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
   function handleCreateClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canCreateClients) {
-      setClientFormError("Voce nao tem permissao para criar clientes.");
+      setClientFormError("Voce nao tem permissao para criar empresas.");
       return;
     }
     const payload = {
@@ -389,7 +404,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
     };
 
     if (!payload.name || !payload.email || !payload.cnpj) {
-      setClientFormError("Preencha todos os campos para criar o cliente.");
+      setClientFormError("Preencha todos os campos para cadastrar a empresa.");
       return;
     }
 
@@ -405,7 +420,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
 
         if (!response.ok) {
           const body = await response.json().catch(() => ({ error: "Erro inesperado." }));
-          setClientFormError(body.error ?? "Não foi possível criar o cliente.");
+          setClientFormError(body.error ?? "Não foi possível cadastrar a empresa.");
           return;
         }
 
@@ -414,8 +429,8 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
         setSelectedClientId(createdClient.id);
         handleClientModalClose();
       } catch (error) {
-        console.error("Erro ao criar cliente", error);
-        setClientFormError("Não foi possível criar o cliente. Tente novamente.");
+        console.error("Erro ao cadastrar empresa", error);
+        setClientFormError("Não foi possível cadastrar a empresa. Tente novamente.");
       }
     });
   }
@@ -638,8 +653,8 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
           <h2 className="text-lg font-semibold text-white">Livro-caixa</h2>
           <p className="text-sm text-slate-300/80">
             {canCreateClients
-              ? "Selecione uma empresa para gerenciar lançamentos ou cadastre um novo."
-              : "Selecione o cliente autorizado para gerenciar os lançamentos."}
+              ? "Selecione uma empresa para gerenciar lançamentos ou cadastre uma nova."
+              : "Selecione a empresa autorizada para gerenciar os lançamentos."}
           </p>
         </div>
         {canCreateClients ? (
@@ -648,14 +663,14 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
             type="button"
             onClick={() => setClientModalOpen(true)}
           >
-            Novo cliente
+            Nova empresa
           </button>
         ) : null}
       </div>
 
       <div className="mt-6 space-y-4">
         <label className="block text-sm font-medium text-slate-200" htmlFor="client">
-          Cliente
+          Empresa
         </label>
         <select
           className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20 disabled:opacity-60"
@@ -669,7 +684,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
         >
           {hasClients ? (
             <>
-              <option value="">Selecione uma empresa</option>
+              {canCreateClients ? <option value="">Selecione uma empresa</option> : null}
               {formattedClients.map((client) => (
                 <option key={client.id} value={client.id}>
                   {client.name} · {client.formattedCnpj}
@@ -677,7 +692,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
               ))}
             </>
           ) : (
-            <option value="">Nenhum cliente cadastrado</option>
+            <option value="">Nenhuma empresa cadastrada</option>
           )}
         </select>
 
@@ -690,8 +705,8 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
         ) : (
           <p className="text-xs text-slate-400">
             {canCreateClients
-              ? "Escolha um cliente ou cadastre um novo para acessar o livro-caixa."
-              : "Escolha um cliente para acessar o livro-caixa."}
+              ? "Escolha uma empresa ou cadastre uma nova para acessar o livro-caixa."
+              : "Escolha uma empresa para acessar o livro-caixa."}
           </p>
         )}
       </div>
@@ -702,7 +717,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
             <header className="space-y-2">
               <h3 className="text-lg font-semibold text-white">Lançamentos</h3>
               <p className="text-sm text-slate-300/80">
-                O livro-caixa é a ferramenta de controle financeiro do cliente. Acompanhe os lançamentos e filtre por data.
+                O livro-caixa é a ferramenta de controle financeiro da empresa. Acompanhe os lançamentos e filtre por data.
               </p>
             </header>
 
@@ -739,7 +754,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                   <thead className="text-xs font-semibold uppercase tracking-wide text-slate-300/80">
                     <tr>
                       <th className="px-4 py-3 text-left">Data</th>
-                      <th className="px-4 py-3 text-left">Cliente / Fornecedor</th>
+                      <th className="px-4 py-3 text-left">Empresa / Fornecedor</th>
                       <th className="px-4 py-3 text-left">Produto / Serviço</th>
                       <th className="px-4 py-3 text-left">Movimentação</th>
                       <th className="px-4 py-3 text-left">Tipo</th>
@@ -845,7 +860,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">Adicionar lançamento</p>
               <h3 className="text-xl font-semibold text-white">Registrar movimentação financeira</h3>
               <p className="text-sm text-slate-300/80">
-                Preencha os campos abaixo para adicionar um novo lançamento ao livro-caixa do cliente selecionado.
+                Preencha os campos abaixo para adicionar um novo lançamento ao livro-caixa da empresa selecionada.
               </p>
             </header>
 
@@ -910,13 +925,13 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-200" htmlFor="entry-counterpart">
-                    Cliente ou fornecedor
+                    Empresa ou fornecedor
                   </label>
                   <input
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
                     id="entry-counterpart"
                     name="entry-counterpart"
-                    placeholder="Nome do cliente ou fornecedor"
+                  placeholder="Nome da empresa ou fornecedor"
                     value={entryForm.counterpart}
                     onChange={(event) => handleEntryFormChange("counterpart", event.target.value)}
                     required
@@ -1065,7 +1080,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
           <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
             <header className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Cadastrar novo cliente</h3>
+                <h3 className="text-lg font-semibold text-white">Cadastrar nova empresa</h3>
                 <p className="text-sm text-slate-300/80">
                   Preencha as informações de contato e identificação fiscal.
                 </p>
@@ -1083,7 +1098,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
             <form className="mt-6 space-y-5" onSubmit={handleCreateClient}>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-200" htmlFor="client-name">
-                  Nome do cliente
+                  Nome da empresa
                 </label>
                 <input
                   className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
@@ -1107,7 +1122,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                   type="email"
                   value={clientForm.email}
                   onChange={(event) => handleClientFormChange("email", event.target.value)}
-                  placeholder="contato@cliente.com.br"
+                  placeholder="contato@empresa.com.br"
                   required
                 />
               </div>
@@ -1146,7 +1161,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                   disabled={isCreatingClient}
                   type="submit"
                 >
-                  {isCreatingClient ? "Salvando..." : "Cadastrar cliente"}
+                  {isCreatingClient ? "Salvando..." : "Cadastrar empresa"}
                 </button>
               </div>
             </form>
@@ -1244,7 +1259,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-slate-200" htmlFor="edit-counterpart">
-                    Cliente ou fornecedor
+                    Empresa ou fornecedor
                   </label>
                   <input
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
@@ -1403,7 +1418,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                 <thead className="text-xs font-semibold uppercase tracking-wide text-slate-300/80">
                   <tr>
                     <th className="px-4 py-3 text-left">Data</th>
-                    <th className="px-4 py-3 text-left">Cliente / Fornecedor</th>
+                    <th className="px-4 py-3 text-left">Empresa / Fornecedor</th>
                     <th className="px-4 py-3 text-left">Produto / Servico</th>
                     <th className="px-4 py-3 text-left">Movimentacao</th>
                     <th className="px-4 py-3 text-left">Forma pagamento</th>
