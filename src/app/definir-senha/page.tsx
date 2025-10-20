@@ -2,6 +2,7 @@
 import SetPasswordForm from "../_components/set-password-form";
 import { prismaWithRetry } from "../../lib/prisma-retry";
 import { hashPassword } from "../../lib/auth";
+import { createSessionCookie } from "../../lib/session";
 
 type PageProps = {
   searchParams: Record<string, string | string[] | undefined>;
@@ -33,7 +34,7 @@ async function resetPasswordAction(_: ResetState, formData: FormData): Promise<R
   const user = await prismaWithRetry((client) =>
     client.user.findUnique({
       where: { passwordResetToken: token },
-      select: { id: true },
+      select: { id: true, admin: true, companyId: true },
     }),
   );
 
@@ -54,7 +55,13 @@ async function resetPasswordAction(_: ResetState, formData: FormData): Promise<R
     }),
   );
 
-  redirect("/?senhaAtualizada=1");
+  await createSessionCookie({
+    userId: user.id.toString(),
+    admin: user.admin,
+    companyId: user.companyId,
+  });
+
+  redirect(user.admin ? "/admin" : "/dashboard");
   return { error: "" };
 }
 

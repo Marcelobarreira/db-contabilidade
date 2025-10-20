@@ -28,7 +28,7 @@ export default async function LivroCaixaPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
       <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-8 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-slate-300/80">Ferramentas</p>
             <h1 className="mt-2 text-3xl font-semibold text-white">Livro-caixa</h1>
@@ -50,8 +50,8 @@ export default async function LivroCaixaPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <LivroCaixaPanel initialClients={clients} />
+      <div className="mx-auto max-w-6xl px-8 py-10">
+        <LivroCaixaPanel initialClients={clients} canCreateClients />
       </div>
     </main>
   );

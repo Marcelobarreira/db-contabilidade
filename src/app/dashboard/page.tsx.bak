@@ -3,7 +3,6 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { prismaWithRetry } from "../../lib/prisma-retry";
 import { getSession } from "../../lib/session";
-import LogoutButton from "../_components/logout-button";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -98,9 +97,15 @@ export default async function ClientDashboard() {
             <span className="rounded-full border border-white/10 bg-white/10 px-4 py-2 font-medium text-slate-100">
               Atualizado em: {formatDate(new Date())}
             </span>
-            <LogoutButton className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 font-semibold text-slate-100 transition hover:border-red-500 hover:text-red-200">
+            <button
+              className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 font-semibold text-slate-100 transition hover:border-red-500 hover:text-red-200"
+              onClick={async () => {
+                await fetch("/api/logout", { method: "POST" });
+                window.location.href = "/";
+              }}
+            >
               Sair
-            </LogoutButton>
+            </button>
           </div>
         </div>
       </header>
@@ -111,7 +116,8 @@ export default async function ClientDashboard() {
             <p className="text-sm font-medium text-slate-300/80">Saldo acumulado</p>
             <p className="mt-3 text-3xl font-semibold text-white">{currencyFormatter.format(balance)}</p>
             <p className="mt-4 text-xs text-slate-400">
-              Entradas totais de {currencyFormatter.format(totals.income)} e saídas de {currencyFormatter.format(Math.abs(totals.expense))} no período exibido.
+              Entradas totais de {currencyFormatter.format(totals.income)} e saídas de{" "}
+              {currencyFormatter.format(Math.abs(totals.expense))} no período exibido.
             </p>
           </article>
           <article className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
@@ -144,7 +150,7 @@ export default async function ClientDashboard() {
             </div>
             <Link
               className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300"
-              href="/dashboard/livro-caixa"
+              href={`/dashboard/livro-caixa`}
             >
               Livro-caixa
             </Link>

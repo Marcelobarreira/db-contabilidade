@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import LoginForm from "./_components/login-form";
 import { prismaWithRetry } from "../lib/prisma-retry";
 import { verifyPassword } from "../lib/auth";
+import { createSessionCookie, getSession } from "../lib/session";
 
 type LoginState = {
   error: string;
@@ -32,6 +33,7 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
         password: true,
         admin: true,
         mustChangePassword: true,
+        companyId: true,
       },
     }),
   );
@@ -55,6 +57,12 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
     return { error: "" };
   }
 
+  await createSessionCookie({
+    userId: user.id.toString(),
+    admin: user.admin,
+    companyId: user.companyId,
+  });
+
   await prismaWithRetry((client) =>
     client.user.update({
       where: { id: user.id },
@@ -72,7 +80,12 @@ async function loginAction(_: LoginState, formData: FormData): Promise<LoginStat
   return { error: "" };
 }
 
-export default function Home({ searchParams }: HomeProps) {
+export default async function Home({ searchParams }: HomeProps) {
+  const session = await getSession();
+  if (session) {
+    redirect(session.admin ? "/admin" : "/dashboard");
+  }
+
   const senhaParam = searchParams?.senhaAtualizada;
   const senhaAtualizada = Array.isArray(senhaParam) ? senhaParam.includes("1") : senhaParam === "1";
 

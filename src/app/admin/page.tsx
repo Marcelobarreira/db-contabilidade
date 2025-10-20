@@ -1,6 +1,7 @@
-import { prismaWithRetry } from "../../lib/prisma-retry";
+﻿import { prismaWithRetry } from "../../lib/prisma-retry";
 import Link from "next/link";
 import Image from "next/image";
+import LogoutButton from "../_components/logout-button";
 
 type ClientSummary = {
   id: number;
@@ -76,7 +77,7 @@ export default async function AdminDashboard() {
         <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-4">
             <Image
-              src="/dbcontabilidade.jpg"
+              src="/dbcontabilidade.png"
               alt="DB Contabilidade"
               width={56}
               height={56}
@@ -84,7 +85,7 @@ export default async function AdminDashboard() {
               priority
             />
             <div>
-              
+              <p className="text-lg font-semibold tracking-wide text-white">DB Contabilidade</p>
               <p className="text-sm text-slate-300/80">Painel de Controle Administrativo</p>
             </div>
           </div>
@@ -106,9 +107,9 @@ export default async function AdminDashboard() {
               >
                 Acessos
               </Link>
-              <button className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 font-semibold transition hover:border-sky-500 hover:text-sky-300">
-                Configuracoes
-              </button>
+              <LogoutButton className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-red-500 hover:text-red-200 cursor-pointer">
+                Sair
+              </LogoutButton>
             </div>
           </div>
         </div>
@@ -143,9 +144,7 @@ export default async function AdminDashboard() {
           <header className="flex flex-col gap-2 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-white">Clientes recentes</h2>
-              <p className="text-sm text-slate-300/80">
-                Ultimas empresas cadastradas no portal.
-              </p>
+              <p className="text-sm text-slate-300/80">Ultimas empresas cadastradas no portal.</p>
             </div>
           </header>
 

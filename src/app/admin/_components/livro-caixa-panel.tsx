@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
-import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
+import type { MovementCategory } from "@prisma/client";
 
 type Client = {
   id: number;
@@ -26,6 +27,7 @@ type CashEntry = {
 
 type LivroCaixaPanelProps = {
   initialClients: Client[];
+  canCreateClients?: boolean;
 };
 
 type ClientFormState = {
@@ -55,6 +57,22 @@ type PaymentOption =
   | "CARTAO_DEBITO"
   | "CHEQUE"
   | "OUTROS";
+
+type ImportPreview = {
+  filename: string;
+  format: "csv" | "ofx";
+  currency?: string;
+  transactions: Array<{
+    date: string;
+    amount: number;
+    description: string;
+    reference: string;
+    counterpart: string;
+    productService: string;
+    paymentMethod: PaymentOption;
+    movement: MovementCategory;
+  }>;
+};
 
 const MOVEMENT_OPTIONS: { value: MovementOption; label: string }[] = [
   { value: "RECEITA", label: "Receita" },
@@ -138,7 +156,7 @@ function createInitialEntryForm(): EntryFormState {
   };
 }
 
-export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps) {
+export default function LivroCaixaPanel({ initialClients, canCreateClients = false }: LivroCaixaPanelProps) {
   const [clients, setClients] = useState<Client[]>(
     initialClients.map((client) => ({
       ...client,
@@ -167,6 +185,10 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
   const [isEditing, startEditTransition] = useTransition();
   const [editError, setEditError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [isImporting, startImportTransition] = useTransition();
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (typeof selectedClientId !== "number") {
@@ -331,6 +353,10 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
 
   function handleCreateClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canCreateClients) {
+      setClientFormError("Voce nao tem permissao para criar clientes.");
+      return;
+    }
     const payload = {
       name: clientForm.name.trim(),
       email: clientForm.email.trim(),
@@ -519,6 +545,7 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
   }
 
   const hasClients = formattedClients.length > 0;
+  const importTransactionsCount = importPreview?.transactions.length ?? 0;
 
   return (
     <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-white/5">
@@ -526,16 +553,20 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
         <div>
           <h2 className="text-lg font-semibold text-white">Livro-caixa</h2>
           <p className="text-sm text-slate-300/80">
-            Selecione um cliente para gerenciar lançamentos ou cadastre um novo.
+            {canCreateClients
+              ? "Selecione um cliente para gerenciar lançamentos ou cadastre um novo."
+              : "Selecione o cliente autorizado para gerenciar os lançamentos."}
           </p>
         </div>
-        <button
-          className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-          type="button"
-          onClick={() => setClientModalOpen(true)}
-        >
-          Novo cliente
-        </button>
+        {canCreateClients ? (
+          <button
+            className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+            type="button"
+            onClick={() => setClientModalOpen(true)}
+          >
+            Novo cliente
+          </button>
+        ) : null}
       </div>
 
       <div className="mt-6 space-y-4">
@@ -574,7 +605,9 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
           </div>
         ) : (
           <p className="text-xs text-slate-400">
-            Escolha um cliente ou cadastre um novo para acessar o livro-caixa.
+            {canCreateClients
+              ? "Escolha um cliente ou cadastre um novo para acessar o livro-caixa."
+              : "Escolha um cliente para acessar o livro-caixa."}
           </p>
         )}
       </div>
@@ -617,7 +650,7 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-slate-950/60">
-              <div className="overflow-x-auto">
+              <div className="max-h-[28rem] overflow-y-auto overflow-x-auto">
                 <table className="min-w-full divide-y divide-white/10">
                   <thead className="text-xs font-semibold uppercase tracking-wide text-slate-300/80">
                     <tr>
@@ -878,7 +911,58 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
                 <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{entryFormError}</p>
               ) : null}
 
-              <div className="flex items-center justify-end">
+              {!importPreview && importError ? (
+                <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{importError}</p>
+              ) : null}
+
+              <div className="flex items-center justify-end gap-3">
+                <button
+                  className="rounded-xl border border-white/10 bg-slate-950/60 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-sky-500 hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={typeof selectedClientId !== "number"}
+                >
+                  Importar extrato
+                </button>
+                <input
+                  ref={fileInputRef}
+                  className="hidden"
+                  type="file"
+                  accept=".csv,.ofx,application/ofx,text/csv"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    if (typeof selectedClientId !== "number") {
+                      setImportError("Selecione um cliente antes de importar.");
+                      return;
+                    }
+                    setImportError(null);
+                    startImportTransition(async () => {
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const response = await fetch("/api/importar-extrato", {
+                          method: "POST",
+                          body: formData,
+                        });
+                        if (!response.ok) {
+                          const body = await response.json().catch(() => ({ error: "Falha ao importar o extrato." }));
+                          setImportError(body.error ?? "Não foi possível importar o extrato.");
+                          return;
+                        }
+                        const data = (await response.json()) as ImportPreview;
+                        setImportPreview(data);
+                        setImportError(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = "";
+                        }
+                      } catch (error) {
+                        console.error("Erro ao importar extrato", error);
+                        setImportError("Não foi possível importar o extrato. Tente novamente.");
+                      }
+                    });
+                  }}
+                />
                 <button
                   className="rounded-xl bg-sky-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isCreatingEntry}
@@ -892,7 +976,7 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
         </div>
       ) : null}
 
-      {clientModalOpen ? (
+      {canCreateClients && clientModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur">
           <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
             <header className="flex items-start justify-between gap-4">
@@ -1197,6 +1281,157 @@ export default function LivroCaixaPanel({ initialClients }: LivroCaixaPanelProps
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {importPreview ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-8 backdrop-blur">
+          <div className="w-full max-w-4xl rounded-3xl border border-white/10 bg-slate-900/95 p-6 shadow-2xl">
+            <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Pre-visualizacao do extrato</h3>
+                <p className="text-sm text-slate-300/80">
+                  {importPreview.filename} · {importPreview.format.toUpperCase()} · {importPreview.currency ?? "BRL"} ·{" "}
+                  {importTransactionsCount} lancamentos
+                </p>
+              </div>
+              <button
+                className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-sky-500 hover:text-sky-300"
+                type="button"
+                onClick={() => {
+                  setImportPreview(null);
+                  setImportError(null);
+                }}
+              >
+                Fechar
+              </button>
+            </header>
+
+            {importError ? (
+              <p className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {importError}
+              </p>
+            ) : null}
+
+            <div className="mt-6 max-h-96 overflow-auto rounded-2xl border border-white/10 bg-slate-950/60">
+              <table className="min-w-full divide-y divide-white/10 text-sm text-slate-200">
+                <thead className="text-xs font-semibold uppercase tracking-wide text-slate-300/80">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Data</th>
+                    <th className="px-4 py-3 text-left">Cliente / Fornecedor</th>
+                    <th className="px-4 py-3 text-left">Produto / Servico</th>
+                    <th className="px-4 py-3 text-left">Movimentacao</th>
+                    <th className="px-4 py-3 text-left">Forma pagamento</th>
+                    <th className="px-4 py-3 text-left">Valor</th>
+                    <th className="px-4 py-3 text-left">Referencia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {importPreview.transactions.map((item, index) => (
+                    <tr key={`${item.reference}-${index}`} className="hover:bg-slate-900/60">
+                      <td className="px-4 py-3">{item.date || "—"}</td>
+                      <td className="px-4 py-3">{item.counterpart}</td>
+                      <td className="px-4 py-3">
+                        <p>{item.productService}</p>
+                        <p className="text-xs text-slate-400">{item.description}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        {item.movement === "DESPESA" || item.movement === "COMPRA" || item.movement === "RETIRADA"
+                          ? "Saida"
+                          : "Entrada"}
+                      </td>
+                      <td className="px-4 py-3">{formatPayment(item.paymentMethod)}</td>
+                      <td className="px-4 py-3 font-semibold">{currencyFormatter.format(item.amount)}</td>
+                      <td className="px-4 py-3 text-xs text-slate-400">{item.reference || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button
+                className="rounded-xl border border-white/10 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-sky-500 hover:text-sky-300"
+                type="button"
+                onClick={() => {
+                  setImportPreview(null);
+                  setImportError(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-600/30 transition hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                disabled={isImporting || typeof selectedClientId !== "number" || importTransactionsCount === 0}
+                onClick={async () => {
+                  if (!importPreview || typeof selectedClientId !== "number") {
+                    return;
+                  }
+                  setImportError(null);
+                  startImportTransition(async () => {
+                    try {
+                      const newEntries: CashEntry[] = [];
+                      for (const transaction of importPreview.transactions) {
+                        if (!transaction.date) {
+                          continue;
+                        }
+
+                        const movementValue: MovementOption =
+                          transaction.movement === "DESPESA"
+                            ? "DESPESA"
+                            : transaction.movement === "COMPRA"
+                              ? "COMPRA"
+                              : transaction.movement === "RETIRADA"
+                                ? "RETIRADA"
+                                : "RECEITA";
+
+                        const payload = {
+                          date: transaction.date,
+                          movement: movementValue,
+                          counterpart: transaction.counterpart || "Nao identificado",
+                          productService: transaction.productService || "Nao identificado (NI)",
+                          type: "SERVICO",
+                          paymentMethod: transaction.paymentMethod,
+                          amount: transaction.amount.toFixed(2),
+                          notes: transaction.reference || undefined,
+                        };
+
+                        const response = await fetch(
+                          `/api/clients/${selectedClientId}/cash-entries`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify(payload),
+                          },
+                        );
+
+                        if (!response.ok) {
+                          const body = await response.json().catch(() => ({ error: "Falha ao salvar lançamento." }));
+                          throw new Error(body.error ?? "Falha ao salvar lançamento.");
+                        }
+
+                        const created = (await response.json()) as CashEntry;
+                        newEntries.push(created);
+                      }
+
+                      if (newEntries.length > 0) {
+                        setEntries((prev) => [...prev, ...newEntries]);
+                      }
+                      setImportPreview(null);
+                    } catch (error) {
+                      console.error("Erro ao confirmar importacao", error);
+                      setImportError("Nao foi possivel importar todos os lancamentos. Tente novamente.");
+                    }
+                  });
+                }}
+              >
+                {isImporting ? "Importando..." : "Adicionar lancamentos"}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

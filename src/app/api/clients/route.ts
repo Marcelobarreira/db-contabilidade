@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prismaWithRetry } from "../../../lib/prisma-retry";
+import { decodeSessionToken, SESSION_COOKIE_NAME } from "../../../lib/session";
 
 type CreateClientPayload = {
   name?: unknown;
@@ -45,7 +46,18 @@ export async function GET() {
   );
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value ?? "";
+  const session = token ? decodeSessionToken(token) : null;
+
+  if (!session) {
+    return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
+  }
+
+  if (!session.admin) {
+    return NextResponse.json({ error: "Apenas administradores podem criar clientes." }, { status: 403 });
+  }
+
   const payload = (await request.json()) as CreateClientPayload;
   const rawName = typeof payload.name === "string" ? payload.name.trim() : "";
   const rawEmail = typeof payload.email === "string" ? payload.email.trim() : "";
