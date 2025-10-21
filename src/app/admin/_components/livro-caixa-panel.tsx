@@ -10,6 +10,8 @@ type Company = {
   cnpj: string;
 };
 
+type Client = Company;
+
 type CashEntry = {
   id: number;
   companyId: number;
