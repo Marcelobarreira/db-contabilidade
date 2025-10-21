@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prismaWithRetry } from "../../../lib/prisma-retry";
 import { hashPassword } from "../../../lib/auth";
+import { sendWelcomeEmail } from "../../../lib/mail";
 
 type CreateUserPayload = {
   email?: unknown;
@@ -93,6 +94,15 @@ export async function POST(request: Request) {
         },
       }),
     );
+
+    void sendWelcomeEmail({
+      to: rawEmail,
+      temporaryPassword,
+      companyName: user.company?.name ?? companySummary?.name ?? null,
+      isAdmin,
+    }).catch((error) => {
+      console.error("[mail] Falha ao enviar boas-vindas:", error);
+    });
 
     return NextResponse.json(
       {
