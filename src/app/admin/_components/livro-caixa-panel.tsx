@@ -308,15 +308,16 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .map((entry) => {
         const multiplier = entry.movement === "RECEITA" ? 1 : -1;
-        running += entry.amount * multiplier;
+        const amount = Math.abs(entry.amount);
+        running += amount * multiplier;
 
         return {
           ...entry,
           runningBalance: running,
           displayAmount:
             entry.movement === "RECEITA"
-              ? currencyFormatter.format(entry.amount)
-              : `-${currencyFormatter.format(entry.amount)}`,
+              ? currencyFormatter.format(amount)
+              : `-${currencyFormatter.format(amount)}`,
         };
       });
   }, [filteredEntries]);
@@ -335,7 +336,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
   const totals = useMemo(() => {
     return enhancedEntries.reduce(
       (acc, entry) => {
-        const amount = entry.amount;
+        const amount = Math.abs(entry.amount);
         switch (entry.movement) {
           case "RECEITA":
             acc.entradas += amount;
