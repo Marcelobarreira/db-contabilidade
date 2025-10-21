@@ -755,6 +755,17 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                 <table className="min-w-full divide-y divide-white/10">
                   <thead className="text-xs font-semibold uppercase tracking-wide text-slate-300/80">
                     <tr>
+                      <th className="px-4 py-3 text-left">
+                        <input
+                          ref={selectAllCheckboxRef}
+                          aria-label="Selecionar todas as movimentacoes visiveis"
+                          className="h-4 w-4 rounded border border-white/30 bg-slate-950/80 text-sky-500 focus:ring-2 focus:ring-sky-500 disabled:opacity-40"
+                          type="checkbox"
+                          checked={allVisibleSelected}
+                          onChange={handleToggleSelectAll}
+                          disabled={isFetchingEntries || entriesError != null || bulkDeleting}
+                        />
+                      </th>
                       <th className="px-4 py-3 text-left">Data</th>
                       <th className="px-4 py-3 text-left">Empresa / Fornecedor</th>
                       <th className="px-4 py-3 text-left">Produto / Serviço</th>
@@ -769,19 +780,29 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                   <tbody className="divide-y divide-white/5 text-sm text-slate-200">
                     {isFetchingEntries ? (
                       <tr>
-                        <td className="px-4 py-6 text-center text-sm text-slate-400" colSpan={9}>
+                        <td className="px-4 py-6 text-center text-sm text-slate-400" colSpan={10}>
                           Carregando lançamentos...
                         </td>
                       </tr>
                     ) : entriesError ? (
                       <tr>
-                        <td className="px-4 py-6 text-center text-sm text-red-300" colSpan={9}>
+                        <td className="px-4 py-6 text-center text-sm text-red-300" colSpan={10}>
                           {entriesError}
                         </td>
                       </tr>
                     ) : enhancedEntries.length > 0 ? (
                       enhancedEntries.map((entry) => (
                         <tr key={entry.id} className="hover:bg-slate-900/60">
+                          <td className="px-4 py-3">
+                            <input
+                              aria-label="Selecionar movimentação"
+                              className="h-4 w-4 rounded border border-white/30 bg-slate-950/80 text-sky-500 focus:ring-2 focus:ring-sky-500 disabled:opacity-40"
+                              type="checkbox"
+                              checked={selectedEntryIdsSet.has(entry.id)}
+                              onChange={() => handleToggleEntrySelection(entry.id)}
+                              disabled={bulkDeleting}
+                            />
+                          </td>
                           <td className="px-4 py-3">{formatDateShort(entry.date)}</td>
                           <td className="px-4 py-3">{entry.counterpart}</td>
                           <td className="px-4 py-3">{entry.productService}</td>
@@ -802,14 +823,15 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                                 className="rounded-lg border border-white/10 px-3 py-1 font-semibold text-slate-200 transition hover:border-sky-500 hover:text-sky-300"
                                 type="button"
                                 onClick={() => handleEditEntry(entry)}
+                                disabled={bulkDeleting}
                               >
                                 Editar
                               </button>
                               <button
-                                className="rounded-lg border border-red-500/40 px-3 py-1 font-semibold text-red-200 transition hover:bg-red-500/10"
+                                className="rounded-lg border border-red-500/40 px-3 py-1 font-semibold text-red-200 transition hover:bg-red-500/10 disabled:opacity-40"
                                 type="button"
                                 onClick={() => handleDeleteEntry(entry)}
-                                disabled={isDeleting}
+                                disabled={isDeleting || bulkDeleting}
                               >
                                 Excluir
                               </button>
@@ -819,7 +841,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                       ))
                     ) : (
                       <tr>
-                        <td className="px-4 py-6 text-center text-sm text-slate-400" colSpan={9}>
+                        <td className="px-4 py-6 text-center text-sm text-slate-400" colSpan={10}>
                           Nenhum lançamento registrado para o período selecionado.
                         </td>
                       </tr>
@@ -848,11 +870,25 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                   <strong className="text-pink-300">{currencyFormatter.format(totals.retiradas)}</strong>
                 </span>
               </div>
-              <div className="text-base font-semibold">
-                Total:&nbsp;
-                <span className={totalBalance >= 0 ? "text-sky-300" : "text-red-300"}>
-                  {currencyFormatter.format(totalBalance)}
+              <div className="flex flex-col items-start gap-3 text-base font-semibold sm:items-end">
+                <span>
+                  Saldo:&nbsp;
+                  <span className={totalBalance >= 0 ? "text-sky-300" : "text-red-300"}>
+                    {currencyFormatter.format(totalBalance)}
+                  </span>
                 </span>
+                <button
+                  className="inline-flex items-center justify-center rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-40"
+                  type="button"
+                  onClick={handleBulkDelete}
+                  disabled={selectedEntriesCount === 0 || bulkDeleting}
+                >
+                  {bulkDeleting
+                    ? "Excluindo lancamentos..."
+                    : selectedEntriesCount > 0
+                      ? `Excluir ${selectedEntriesCount} selecionado${selectedEntriesCount > 1 ? "s" : ""}`
+                      : "Excluir selecionados"}
+                </button>
               </div>
             </aside>
           </section>
