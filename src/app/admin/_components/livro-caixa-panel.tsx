@@ -128,6 +128,16 @@ function normalizeAmountInput(value: string) {
   return value.replace(/[^\d.,-]/g, "");
 }
 
+function parseCurrencyToNumber(value: string) {
+  const cleaned = value.replace(/\s/g, "").replace(/\./g, "").replace(/,/g, ".");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatNumberToCurrencyInput(value: number) {
+  return currencyFormatter.format(value).replace(/\s/g, "").replace("R$", "").trim();
+}
+
 function formatDateInput(date: Date) {
   const year = date.getFullYear();
   const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -152,7 +162,7 @@ function createInitialEntryForm(): EntryFormState {
     counterpart: "",
     productService: "",
     type: "COMERCIO",
-  paymentMethod: "",
+    paymentMethod: "PIX",
     amount: "",
     notes: "",
   };
@@ -189,6 +199,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
   const [entryFormError, setEntryFormError] = useState<string | null>(null);
   const [isCreatingEntry, startCreateEntryTransition] = useTransition();
   const [editingEntry, setEditingEntry] = useState<CashEntry | null>(null);
+  const [editAmountInput, setEditAmountInput] = useState("0,00");
   const [isEditing, startEditTransition] = useTransition();
   const [editError, setEditError] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
@@ -490,12 +501,14 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
   }
 
   function handleEditEntry(entry: CashEntry) {
-    setEditingEntry(entry);
+    setEditingEntry({ ...entry });
+    setEditAmountInput(formatNumberToCurrencyInput(entry.amount));
     setEditError(null);
   }
 
   function handleCloseEditModal() {
     setEditingEntry(null);
+    setEditAmountInput("0,00");
     setEditError(null);
   }
 
@@ -514,11 +527,7 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
       productService: editingEntry.productService,
       type: editingEntry.type,
       paymentMethod: editingEntry.paymentMethod,
-      amount: currencyFormatter
-        .format(editingEntry.amount)
-        .replace(/\s/g, "")
-        .replace("R$", "")
-        .trim(),
+      amount: editAmountInput || formatNumberToCurrencyInput(editingEntry.amount),
       notes: editingEntry.notes ?? "",
     };
 
@@ -1336,18 +1345,14 @@ export default function LivroCaixaPanel({ initialClients, canCreateClients = fal
                     className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 shadow-sm transition focus:border-sky-500 focus:outline-none focus:ring-4 focus:ring-sky-500/20"
                     id="edit-amount"
                     inputMode="decimal"
-                    value={applyCurrencyMask(editingEntry.amount.toString())}
-                    onChange={(event) =>
-                      setEditingEntry((prev) =>
-                        prev
-                          ? {
-                              ...prev,
-                              amount:
-                                Number(normalizeAmountInput(event.target.value)) / 100,
-                            }
-                          : prev,
-                      )
-                    }
+                    value={editAmountInput}
+                    onChange={(event) => {
+                      const digits = normalizeAmountInput(event.target.value);
+                      const masked = applyCurrencyMask(digits);
+                      const numeric = parseCurrencyToNumber(masked);
+                      setEditAmountInput(masked);
+                      setEditingEntry((prev) => (prev ? { ...prev, amount: numeric } : prev));
+                    }}
                     required
                   />
                 </div>
